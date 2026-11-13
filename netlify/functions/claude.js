@@ -95,8 +95,12 @@ exports.handler = async event => {
         });
         docs = d.filter(x => x.document).map(x => x.document);
       }
-      const lineas = docs.map((x, i) => `${i + 1}. id=${idDe(x.name)} url=${val(x.fields?.url) || ""}`);
-      return txt(200, `PENDIENTES: ${lineas.length}\n` + lineas.join("\n"));
+      const lista = docs.map(x => ({ id: idDe(x.name), url: val(x.fields?.url) || "" }));
+      return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+        body: JSON.stringify({ ok: true, total: lista.length, pendientes: lista })
+      };
     }
 
     if (q.accion === "guardar") {

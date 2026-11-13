@@ -191,12 +191,13 @@
     </form>
     <input type="file" id="photoInput" accept="image/*" hidden>
     <div class="attach" id="attach"><img id="attachImg" alt=""><span>Foto adjunta</span><button type="button" id="attachX">quitar</button></div>
-    <div class="hint" id="hint">Se clasifica sola por tipo de prenda. Si querés, sumá una captura con 📷 o pegándola.</div>
+    <div class="hint" id="hint">Pegá el link y listo: se clasifica sola, y la foto, el nombre y el precio aparecen solos en hasta 30 minutos (lunes y martes durante todo el día; el resto de los días, de 17 a 00 h).</div>
   </div>
 
   <nav class="tabs" id="tabs"></nav>
   <nav class="filters" id="filters"></nav>
   <main id="list"></main>
+  <footer class="sub" style="text-align:center;padding:28px 0 18px">Desarrollado por Lolo ♡</footer>
 </div>
 
 <div class="sheet-bg" id="sheetBg">
@@ -713,7 +714,7 @@ $("#addForm").addEventListener("submit",async e=>{
     const ref=col.doc();
     await ref.set(doc);
     $("#url").value=""; setPending(null);
-    toast(extra?.found ? `Guardada con datos en ${CAT[doc.categoria].label}` : `Guardada en ${CAT[doc.categoria].label} (sin datos automáticos)`);
+    toast(extra?.found ? `Guardada con datos en ${CAT[doc.categoria].label}` : `Guardada en ${CAT[doc.categoria].label} · la foto llega en un rato`);
     if(sample) classify(ref, doc, photoBlob);
   }catch(err){
     toast(err?.code==="quota_exceeded"?"Se llenó el espacio: borrá alguna prenda":"No se pudo guardar, probá de nuevo");

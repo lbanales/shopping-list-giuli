@@ -129,6 +129,6 @@ exports.handler = async event => {
 
     return txt(400, "accion desconocida");
   } catch (e) {
-    return txt(500, "ERROR " + e.message);
+    return txt(200, "ERROR " + e.message);
   }
 };

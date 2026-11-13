@@ -77,6 +77,14 @@
   .qbtn.on.no{background:#e6e3df;border-color:#cfc9c2;color:#4a4540}
   .item.no{opacity:.5}
   .price{font-weight:600}
+  .wait{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:14px;
+    background:linear-gradient(110deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.55) 50%,rgba(255,255,255,0) 70%);background-size:250% 100%;animation:brillo 1.8s linear infinite}
+  .wait .wg{font-size:38px;animation:salto 1.4s ease-in-out infinite}
+  .wait .wt{font-size:13px;line-height:1.3;color:#5c4a3d;font-weight:500;max-width:150px}
+  .wait .ws{font-size:11px;color:var(--muted)}
+  .pwait{font-size:13px;color:var(--muted);font-style:italic}
+  @keyframes brillo{from{background-position:150% 0}to{background-position:-100% 0}}
+  @keyframes salto{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-8px) rotate(6deg)}}
   .seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px;margin-bottom:6px}
   .seg button{border:0;background:none;border-radius:999px;padding:7px 16px;font-size:14px;cursor:pointer;color:var(--muted);font-weight:500}
   .seg button.on{background:var(--ink);color:#fff}
@@ -403,11 +411,14 @@ function calcSimilares(){
     return n>=2||(col&&n>=1);
   }).map(b=>b.id) }
 }
+const FRASES_ESPERA=["Buscando tu foto en {t}…","Probándotela en el probador ✨","Pidiendo tu talle 👀","Planchándola para la foto","Haciendo la fila de la caja","Sacándole la etiqueta 🏷️","Doblándola prolijito"];
+function fraseEspera(it){ let h=0; for(const ch of String(it.id||"")) h=(h*31+ch.charCodeAt(0))>>>0; return FRASES_ESPERA[h%FRASES_ESPERA.length].replace("{t}",it.tienda||"la tienda") }
 function card(it){
   const c=CAT[it.categoria]||CAT.otros;
   const busy=it.estado==="clasificando";
   const d=deseoDe(it);
   const bj=bajada(it), pn=parsePrecio(it.precio);
+  const espera=it.revisado===false;
   const nb=(it.bolsas||[]).filter(b=>bags.some(x=>x.id===b)).length;
   const q=(id,g,t)=>`<button class="qbtn ${id} ${d===id?"on":""}" data-q="${id}" data-id="${esc(it.id)}" title="${t}">${g}</button>`;
   return `<article class="item ${d}">
@@ -415,9 +426,10 @@ function card(it){
       ${(it.foto||it.fotoUrl)?`<img src="${esc(it.foto||it.fotoUrl)}" alt="" loading="lazy" onerror="this.remove()">`:""}
       <span class="badge ${busy?"busy":""}">${busy?"Clasificando…":esc(c.label)}</span>
       ${bj?`<span class="badge sale">−${bj.pct}%</span>`:""}
-      ${(it.foto||it.fotoUrl)?"":`<div></div><div class="store">${esc(it.tienda)}</div><div class="glyph">${c.glyph}</div>`}
+      ${(it.foto||it.fotoUrl)?"":espera?`<div class="wait"><div class="wg">${c.glyph}</div><div class="wt">${esc(fraseEspera(it))}</div><div class="ws">la foto llega en un ratito</div></div>`:`<div></div><div class="store">${esc(it.tienda)}</div><div class="glyph">${c.glyph}</div>`}
     </div>
     <div class="meta">
+      ${pn==null&&espera?`<div class="pricebox"><span class="pwait">Buscando precio…</span></div>`:""}
       ${pn!=null?`<div class="pricebox"><span class="pnow ${bj?"drop":""}">${fmt(pn)}</span>${bj?`<span class="pold">${fmt(bj.antes)}</span>`:""}</div>`:""}
       <div class="name">${esc(it.nombre||"Prenda sin nombre")}</div>
       <div class="sub">${esc(it.tienda)}${it.color?" · "+esc(it.color):""}${d==="comprada"?" · ✓ comprada":""}${it.agotado?` · <b style="color:#a3321b">agotada</b>`:""}</div>

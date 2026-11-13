@@ -677,7 +677,8 @@ async function obtenerProducto(link){
     const r=await fetch('/.netlify/functions/product?url='+encodeURIComponent(link));
     if(!r.ok) return null;
     const d=await r.json();
-    return d.found ? d : null;
+    if(!d.found || /access denied|forbidden|403|just a moment|captcha/i.test(d.name||"")) return null;
+    return d;
   } catch(e){ return null }
 }
 function precioExtraido(v){

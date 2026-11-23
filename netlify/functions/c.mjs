@@ -86,7 +86,7 @@ export default async req => {
         const falta = x => {
           const f = x.fields || {}, m = [];
           if (!val(f.fotoUrl) && !val(f.foto)) m.push("foto");
-          if (!val(f.precio)) m.push("precio");
+          if (!precioTexto(val(f.precio))) m.push("precio");
           return m;
         };
         docs = todos.filter(x => val(x.fields?.revisado) === false || (falta(x).length && Number(val(x.fields?.intentos) || 0) < 6))
@@ -104,7 +104,7 @@ export default async req => {
       const foto = fotoCompleta(q.f, q.t, val(f.url));
       if (foto) campos.fotoUrl = foto;
       const nuevo = precioTexto(q.p), viejo = val(f.precio) || "";
-      if (nuevo) { campos.precio = nuevo; if (viejo && viejo !== nuevo) campos.precioAnterior = viejo; }
+      if (nuevo) { campos.precio = nuevo; if (precioTexto(viejo) && viejo !== nuevo) campos.precioAnterior = viejo; }
       if (q.n && !BLOQUEO.test(q.n)) { const n = q.n.trim().toLowerCase().slice(0, 120); campos.nombre = n.charAt(0).toUpperCase() + n.slice(1); }
       await actualizar(q.i, campos);
       return json({ ok: true, guardado: q.i, campos: Object.keys(campos), foto: foto || null });

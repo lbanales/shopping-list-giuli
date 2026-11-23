@@ -3,7 +3,8 @@
 //   k = clave
 //   a = p  -> pendientes (revisado=false)      a = t -> todas las no compradas
 //   a = g  -> guardar: i=id, f=foto, t=ts de la foto, p=precio, n=nombre
-//   a = x  -> fallo: i=id (a los 3 intentos deja de reintentar)
+//   a = x  -> fallo: i=id (suma un intento; a los 6 deja de reintentar)
+//   a = p devuelve nuevas + las que no tienen foto o precio (con 'falta')
 // f puede ser la URL completa o solo lo que va después de /assets/public/
 // Variables de entorno en Netlify: CLAVE, FB_CLIENT_EMAIL, FB_PRIVATE_KEY
 import crypto from "node:crypto";
@@ -76,23 +77,30 @@ export default async req => {
   if (!process.env.CLAVE || q.k !== process.env.CLAVE) return json({ ok: false, error: "clave" }, 401);
   try {
     if (q.a === "p" || q.a === "t") {
-      let docs;
+      const todos = ((await fs("/prendas?pageSize=300")).documents || []).filter(x => !val(x.fields?.comprado));
+      let docs, extra = x => ({});
       if (q.a === "t") {
-        docs = ((await fs("/prendas?pageSize=300")).documents || []).filter(x => !val(x.fields?.comprado));
+        docs = todos;
       } else {
-        const d = await fs(":runQuery", { method: "POST", body: JSON.stringify({ structuredQuery: {
-          from: [{ collectionId: "prendas" }],
-          where: { fieldFilter: { field: { fieldPath: "revisado" }, op: "EQUAL", value: { booleanValue: false } } },
-          limit: 15 } }) });
-        docs = d.filter(x => x.document).map(x => x.document);
+        // Pendiente = nueva (revisado=false) o le falta foto/precio y todavía no se intentó 6 veces
+        const falta = x => {
+          const f = x.fields || {}, m = [];
+          if (!val(f.fotoUrl) && !val(f.foto)) m.push("foto");
+          if (!val(f.precio)) m.push("precio");
+          return m;
+        };
+        docs = todos.filter(x => val(x.fields?.revisado) === false || (falta(x).length && Number(val(x.fields?.intentos) || 0) < 6))
+          .sort((a, b) => (val(a.fields?.revisado) === false ? 0 : 1) - (val(b.fields?.revisado) === false ? 0 : 1))
+          .slice(0, 15);
+        extra = x => ({ falta: falta(x) });
       }
-      const lista = docs.map(x => ({ id: x.name.split("/").pop(), url: val(x.fields?.url) || "" }));
+      const lista = docs.map(x => ({ id: x.name.split("/").pop(), url: val(x.fields?.url) || "", ...extra(x) }));
       return json({ ok: true, total: lista.length, pendientes: lista });
     }
     if (q.a === "g") {
       if (!q.i) return json({ ok: false, error: "falta id" }, 400);
       const f = (await fs(`/prendas/${encodeURIComponent(q.i)}`)).fields || {};
-      const campos = { revisado: true };
+      const campos = { revisado: true, intentos: Number(val(f.intentos) || 0) + 1 };
       const foto = fotoCompleta(q.f, q.t, val(f.url));
       if (foto) campos.fotoUrl = foto;
       const nuevo = precioTexto(q.p), viejo = val(f.precio) || "";
@@ -105,7 +113,7 @@ export default async req => {
       if (!q.i) return json({ ok: false, error: "falta id" }, 400);
       const f = (await fs(`/prendas/${encodeURIComponent(q.i)}`)).fields || {};
       const n = Number(val(f.intentos) || 0) + 1;
-      await actualizar(q.i, n >= 3 ? { intentos: n, revisado: true } : { intentos: n });
+      await actualizar(q.i, { intentos: n, revisado: true });
       return json({ ok: true, fallo: q.i, intentos: n });
     }
     return json({ ok: false, error: "accion" }, 400);
